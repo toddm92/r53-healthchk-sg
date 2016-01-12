@@ -1,35 +1,34 @@
-### R53 HealthCheck Security Group
+### AWS Route 53 HealthCheck Security Group
 
-<p>
 This BASH script creates a Route 53 healthcheck VPC security group.  It grabs a list of AWS CIDRs used to perform health checks
 on your services (ELBs, EC2 instances, etc.) and builds a security group that only permits these CIDRs.  The allowed port is
 defined using the PORT variable.
 
-<b>Requirements:</b>
-<ul>
- <li> The awscli  (`sudo pip install awscli`)
- <li> A valid profile in ~/.aws/config or ${AWS_CONFIG_FILE} with the appropriate API keys
- <li> Your VPC-Id.
-</ul>
+**Requirements:**
 
-<b>Usage:</b>
-<p>
-<code>
-r53-healthchk-sg.sh --profile \<profile_name\>
-</code>
+* The awscli  `sudo pip install awscli`
+* A valid profile in `~/.aws/config` or `${AWS_CONFIG_FILE}` with the appropriate API keys
+* Your VPC-Id.
 
-<b>Output:</b>
-<p>
-<pre>
+**Usage:**
+
+```
+r53-healthchk-sg.sh --profile <profile_name>
+```
+
+**Output:**
+
+```
 ./r53-healthchk-sg.sh --profile eng
 
 Enter your VPC-Id: vpc-45338a20
 Creating R53 health check security group ................ done!
 Security group Id: sg-60938505
-</pre>
+```
 
-The R53 Security Group
-<pre>
+The Route 53 Security Group
+
+```
 aws ec2 describe-security-groups --group-ids sg-60938505 --profile eng
 {
     "SecurityGroups": [
@@ -117,9 +116,8 @@ aws ec2 describe-security-groups --group-ids sg-60938505 --profile eng
         }
     ]
 }
-</pre>
+```
 
-<b>To Do:</b>
-<ul>
- <li> Add a check for an existing security group
-</ul>
+**To Do:**
+
+- [ ] Add a check for an existing security group
