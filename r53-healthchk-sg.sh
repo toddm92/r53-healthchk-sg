@@ -45,6 +45,15 @@ check "the aws-cli commands"
 aws ec2 describe-regions --profile $PROFILE > /dev/null 2>&1
 check "profile $PROFILE"
 
+# Check for an existing security-group
+#
+SG=`aws ec2 describe-security-groups --filters Name=description,Values=$DESC --profile $PROFILE --query SecurityGroups[].GroupId | grep sg-`
+
+if [[ $SG != "" ]]; then
+  echo " Error: $SG already exists."
+  exit 1
+fi
+
 # Get the VPC-Id
 # 
 echo -n "Enter your VPC-Id: "
