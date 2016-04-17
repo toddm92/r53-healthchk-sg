@@ -13,7 +13,7 @@ defined using the PORT variable.
 **Usage:**
 
 ```
-/r53-healthchk-sg.sh -n <profile_name> -r <region> [ -p <port> ]
+r53-healthchk-sg.sh -n <profile_name> -r <region> [ -p <port> ]
 ```
 
 **Output:**
