@@ -120,5 +120,5 @@ aws ec2 describe-security-groups --group-ids sg-60938505 --profile eng
 
 **To Do:**
 
-- [ ] Add a check for an existing security group
+- [X] Add a check for an existing security group
 - [ ] Add multi-region support!
