@@ -96,7 +96,7 @@ echo -n "Enter your VPC-Id: "
 # Test for valid VPC-Id
 #
 aws ec2 describe-vpcs --vpc-ids $VPCId --profile $PROFILE --region $REGION > /dev/null 2>&1
-check "VPC-Id $VPCId"
+check "$VPCId in region $REGION"
 
 # Grab the AWS health check IP CIDRs
 #
