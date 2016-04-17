@@ -13,13 +13,13 @@ defined using the PORT variable.
 **Usage:**
 
 ```
-r53-healthchk-sg.sh --profile <profile_name>
+/r53-healthchk-sg.sh -n <profile_name> -r <region> [ -p <port> ]
 ```
 
 **Output:**
 
 ```
-./r53-healthchk-sg.sh --profile eng
+./r53-healthchk-sg.sh -n eng -r us-east-1 -p 5300
 
 Enter your VPC-Id: vpc-45338a20
 Creating R53 health check security group ................ done!
