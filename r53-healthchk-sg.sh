@@ -23,7 +23,7 @@ check ()
   fi
 }
 
-while getopts "n:p:r:h" opt; do
+while getopts "n:p:r:v:h" opt; do
   case $opt in
     n)
       PROFILE=$OPTARG
@@ -34,6 +34,9 @@ while getopts "n:p:r:h" opt; do
     r)
       REGION=$OPTARG
       ;;
+    v)
+      VPCID=$OPTARG
+      ;;
     [h?])
       usage
       exit
@@ -43,13 +46,31 @@ done
 
 # Test for args
 #
-if [[ $PROFILE == "" || $REGION == ""  ]] ; then
+if [[ $PROFILE == "" || $REGION == "" || $VPCID == "" ]] ; then
   usage
 fi
 
 if [[ $PORT == "" ]]; then
   PORT=80
 fi
+
+get_cidr_block () {
+  v6=$1
+  r53CIDRS=$(curl https://ip-ranges.amazonaws.com/ip-ranges.json 2> /dev/null | grep -B2 ROUTE53_HEALTHCHECKS | grep ip${v6}_prefix | awk -F\" '{print $4}')
+  for cidr in ${r53CIDRS}; do
+    ip_ranges="${ip_ranges}{\"CidrIp${v6}\": \"${cidr}\"},"
+    # echo -n "."
+  done
+  # Remove last character
+  ip_ranges="${ip_ranges%?}"
+  echo "\"Ip${v6}Ranges\": [${ip_ranges}]"
+}
+
+get_ip_permissions () {
+  protocol="tcp"
+  port=$1
+  echo "[{\"IpProtocol\": \"${protocol}\", \"FromPort\": ${port}, \"ToPort\": ${port}, $(get_cidr_block ''), $(get_cidr_block 'v6')}]"
+}
 
 # Our variables
 #
@@ -79,46 +100,37 @@ check "profile $PROFILE"
 aws ec2 describe-regions --region-names $REGION --profile $PROFILE > /dev/null 2>&1
 check "the region $REGION"
 
-# Check for an existing security-group
-#
-SG=`aws ec2 describe-security-groups --filters Name=description,Values=$DESC --profile $PROFILE --region $REGION --query SecurityGroups[].GroupId | grep sg-`
-
-if [[ $SG != "" ]]; then
-  echo " Error: $SG already exists."
-  exit 1
-fi
-
-# Get the VPC-Id
-#
-echo -n "Enter your VPC-Id: "
- read VPCId
-
 # Test for valid VPC-Id
 #
-aws ec2 describe-vpcs --vpc-ids $VPCId --profile $PROFILE --region $REGION > /dev/null 2>&1
-check "$VPCId in region $REGION"
+aws ec2 describe-vpcs --vpc-ids $VPCID --profile $PROFILE --region $REGION > /dev/null 2>&1
+check "$VPCID in region $REGION"
 
-# Grab the AWS health check IP CIDRs
+# Check for an existing security-group
 #
-R53CIDRS=`curl https://ip-ranges.amazonaws.com/ip-ranges.json 2> /dev/null | grep -B2 ROUTE53_HEALTHCHECKS | grep prefix | awk -F\" '{print $4}'`
+SGId=`aws ec2 describe-security-groups --filters Name=description,Values=$DESC --profile $PROFILE --region $REGION --query SecurityGroups[].GroupId | grep sg-`
 
-# Create our security group and record the Id
-#
-echo -n "Creating R53 health check security group "
+if [[ $SGId != "" ]]; then
+  SGId="$(echo -e $SGId | tr -d '[:space:]' | tr -d '"')"
+  echo " $SGId already exists, using."
+else
+  # Create our security group and record the Id
+  #
+  echo -n "Creating R53 health check security group "
 
-aws ec2 create-security-group --group-name $NAME --description $DESC --vpc-id $VPCId --profile $PROFILE --region $REGION --output json > /tmp/sg-id.$$
-SGId=`cat /tmp/sg-id.$$ | grep GroupId | awk -F\" '{print $4}'`
+  aws ec2 create-security-group --group-name $NAME --description $DESC --vpc-id $VPCID --profile $PROFILE --region $REGION --output json > /tmp/sg-id.$$
+  SGId=`cat /tmp/sg-id.$$ | grep GroupId | awk -F\" '{print $4}'`
+fi
 
 # Populate the security group
 #
-for cidr in ${R53CIDRS}; do
-  aws ec2 authorize-security-group-ingress --group-id $SGId --protocol tcp --port $PORT --cidr $cidr --profile $PROFILE --region $REGION
-  echo -n "."
-done
+echo "$(get_ip_permissions $PORT)" > /tmp/ippermissions.$$
+$("aws ec2 authorize-security-group-ingress --group-id $SGId --profile $PROFILE --region $REGION --ip-permissions file:///tmp/ippermissions.$$")
+echo -n "."
 
 # Tag it
 #
 aws ec2 create-tags --resources $SGId --tags Key=Name,Value=$NAME --profile $PROFILE --region $REGION
+# echo ""
 
 echo -n " done!"
 echo ""
@@ -127,5 +139,6 @@ echo "Security group Id: $SGId"
 # Clean up
 #
 rm -f /tmp/sg-id.$$
+rm -f /tmp/ippermissions.$$
 
 exit 0
