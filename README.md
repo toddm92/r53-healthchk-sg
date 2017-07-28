@@ -13,15 +13,14 @@ defined using the PORT variable.
 **Usage:**
 
 ```
-r53-healthchk-sg.sh -n <profile_name> -r <region> [ -p <port> ]
+r53-healthchk-sg.sh -n <profile_name> -r <region> -v <vpc-id> [ -g <group-name> ] [ -p <port> ]
 ```
 
 **Output:**
 
 ```
-./r53-healthchk-sg.sh -n eng -r us-east-1 -p 5300
+./r53-healthchk-sg.sh -n eng -r us-east-1 -v vpc-45338a20 -p 5300
 
-Enter your VPC-Id: vpc-45338a20
 Creating R53 health check security group ................ done!
 Security group Id: sg-60938505
 ```
@@ -122,3 +121,5 @@ aws ec2 describe-security-groups --group-ids sg-60938505 --profile eng
 
 - [x] Add a check for an existing security group
 - [x] Add multi-region support!
+- [x] Update existing security group instead of exiting
+- [x] Add ipv6 support

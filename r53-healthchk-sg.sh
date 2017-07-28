@@ -23,8 +23,11 @@ check ()
   fi
 }
 
-while getopts "n:p:r:v:h" opt; do
+while getopts "g:n:p:r:v:h" opt; do
   case $opt in
+    g)
+      NAME=$OPTARG
+      ;;
     n)
       PROFILE=$OPTARG
       ;;
@@ -48,6 +51,10 @@ done
 #
 if [[ $PROFILE == "" || $REGION == "" || $VPCID == "" ]] ; then
   usage
+fi
+
+if [[ $NAME == "" ]]; then
+  NAME=route53-healthchk
 fi
 
 if [[ $PORT == "" ]]; then
@@ -74,7 +81,6 @@ get_ip_permissions () {
 
 # Our variables
 #
-NAME=route53-healthchk
 DESC=Route-53-health-check-security-group
 NUMBER='^[0-9]+$'
 
@@ -107,7 +113,7 @@ check "$VPCID in region $REGION"
 
 # Check for an existing security-group
 #
-SGId=`aws ec2 describe-security-groups --filters Name=description,Values=$DESC --profile $PROFILE --region $REGION --query SecurityGroups[].GroupId | grep sg-`
+SGId=`aws ec2 describe-security-groups --filters Name=group-name,Values=$NAME --profile $PROFILE --region $REGION --query SecurityGroups[].GroupId | grep sg-`
 
 if [[ $SGId != "" ]]; then
   SGId="$(echo -e $SGId | tr -d '[:space:]' | tr -d '"')"
@@ -124,7 +130,7 @@ fi
 # Populate the security group
 #
 echo "$(get_ip_permissions $PORT)" > /tmp/ippermissions.$$
-$("aws ec2 authorize-security-group-ingress --group-id $SGId --profile $PROFILE --region $REGION --ip-permissions file:///tmp/ippermissions.$$")
+populated=`aws ec2 authorize-security-group-ingress --group-id $SGId --profile $PROFILE --region $REGION --ip-permissions file:///tmp/ippermissions.$$`
 echo -n "."
 
 # Tag it
